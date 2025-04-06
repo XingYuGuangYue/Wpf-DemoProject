@@ -5,7 +5,7 @@
         xmlns:local="clr-namespace:TCPClient"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="MainWindow"
-        Width="600"
+        Width="700"
         Height="450"
         mc:Ignorable="d">
     <Grid>
