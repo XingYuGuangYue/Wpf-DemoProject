@@ -10,6 +10,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Net;
 using System.Net.Sockets;
+using System.Collections;
+using System.Net.Http;
 
 namespace TCPServer
 {
@@ -37,7 +39,7 @@ namespace TCPServer
                 _client = await _tcpListener.AcceptTcpClientAsync();
                 _stream = _client.GetStream();
                 ReceivedMessageBox.Text += "Client connected!\n";
-
+                //StartServerBtn.Content = "Stop Server";
                 // 持续接收消息
                 await ReceiveMessages();
             }
@@ -53,10 +55,26 @@ namespace TCPServer
             while (true)
             {
                 int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length);
-                if (bytesRead == 0) break; // 客户端断开连接
+                if (bytesRead == 0) 
+                {
+                    //await Task.Delay(500);
+                    Dispatcher.Invoke(() => ReceivedMessageBox.Text += "Client disconnect!\n");
+                    _client = await _tcpListener.AcceptTcpClientAsync();
+                    _stream = _client.GetStream();
+                    //_client = await _tcpListener.AcceptTcpClientAsync();
+                    //_tcpListener.Stop();
+                    //break;
+                }// 客户端断开连接
+                else
+                {
+                    //string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);//接收文字信息，解码为UTF8
+                    byte[] data = new byte[bytesRead];
+                    Array.Copy(buffer, data, bytesRead); 
+                    string receivedMessage = BitConverter.ToString(data).Replace("-", " ");//接收字节信息，转换成16进制字符串
 
-                string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                Dispatcher.Invoke(() => ReceivedMessageBox.Text += $"Client: {receivedMessage}\n");
+                    Dispatcher.Invoke(() => ReceivedMessageBox.Text += $"Client: {receivedMessage}\n");
+                }
+                
             }
         }
 
@@ -69,10 +87,15 @@ namespace TCPServer
             }
 
             string message = SendMessageBox.Text;
-            byte[] data = Encoding.UTF8.GetBytes(message);
+            //byte[] data = Encoding.UTF8.GetBytes(message);//发送文字信息，编码为UTF8
+            //发送字节信息，每个字节用两个16进制字符串表示的，中间用空格分隔
+            byte[] data = message.Split(' ') // 按空格分割字符串
+                            .Select(hex => Convert.ToByte(hex, 16)) // 将每个十六进制字符串转换为字节
+                            .ToArray(); // 转换为字节数组;
             await _stream.WriteAsync(data, 0, data.Length);
             ReceivedMessageBox.Text += $"Server: {message}\n";
             SendMessageBox.Clear();
         }
+
     }
 }
